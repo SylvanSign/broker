@@ -1,0 +1,27 @@
+TODO for Broker v1.0
+- allow trades to be based on dollars or shares
+- delay orders until market open
+  - for "realism", delay orders until a few minutes after markets open
+  - no leveraging, so we'll immediately take out the cash to cover the pending order
+  - fulfill as much of dollar orders as possible
+    - eg. $10 buys 3 x $3 and puts $1 back into cash
+  - make sure to execute orders concurrently
+    - with respect to a given trader's orders, but also with respect across all traders' orders
+      - Task.async?, or is there some easy way to make these as fault-tolerant as possible?
+    - confirm with each person
+      - maybe as a single message report to prevent spamming channel?
+  - !orders to show pending trades
+    - also show in !me portfolio reports
+- !price changes
+  - new fields to add (with `diff` coloring)
+    - regularmarketchange
+    - regularmarketchangepercent
+  - support comma separated list of tickers to do batch lookups
+- portfolio reports at market close
+  - something like:
+    - traders |> Enum.map(!me) |> sort_by(net_worth) |> Enum.join("\n"))
+- round against trader in all cases, to prevent abusing cheap stocks
+- ! abbreviations
+  - eg. !p = !price, !b = !buy, etc.
+- !help to document the finalized API
+- reset portfolios to end beta and launch 1.0
