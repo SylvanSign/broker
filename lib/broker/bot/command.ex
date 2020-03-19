@@ -50,7 +50,9 @@ defmodule Broker.Bot.Command do
   defp reply_to_user(%{channel_id: channel_id, author: author}, message) do
     Api.create_message(
       channel_id,
-      "```#{message}```#{User.mention(author)}#{if Mix.env() == :dev, do: " from DEV", else: ""}"
+      "```\n#{message}\n```#{User.mention(author)}#{
+        if Mix.env() == :dev, do: " from DEV", else: ""
+      }"
     )
   end
 
