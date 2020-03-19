@@ -30,3 +30,6 @@ broker-*.tar
 
 # Startup script (contains secret token)
 /start.sh
+
+# Update script (contains secret token)
+/update.sh
