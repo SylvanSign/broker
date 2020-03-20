@@ -21,6 +21,14 @@ defmodule Broker.Bot.Command do
     reply_to_user(msg, trader)
   end
 
+  def reply("!all", msg) do
+    response =
+      Broker.Portfolio.Data.all_traders()
+      |> Enum.join("\n")
+
+    reply_to_user(msg, response)
+  end
+
   def reply("!msg", msg) do
     reply_to_user(msg, "#{inspect(msg, pretty: true)}")
   end

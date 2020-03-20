@@ -28,6 +28,10 @@ defmodule Broker.Portfolio.Data do
     end
   end
 
+  def all_traders do
+    Util.PersistentCache.all(@name)
+  end
+
   def store_trader(id, trader) do
     Util.PersistentCache.put(@name, id, trader)
   end

@@ -4,6 +4,11 @@ defmodule Util.PersistentCache do
     |> handle_lookup()
   end
 
+  def all(table) when is_atom(table) do
+    :ets.match(table, :"$1")
+    |> Enum.map(&handle_lookup/1)
+  end
+
   def put(table, key, value) when is_atom(table) do
     :ets.insert(table, {key, value})
     save(table)

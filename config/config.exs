@@ -7,4 +7,7 @@ config :nostrum,
 config :logger,
   level: :warn
 
+config :remix,
+  escript: true
+
 import_config "#{Mix.env()}.exs"
