@@ -17,9 +17,8 @@ defmodule Broker.Bot.Command do
 
   def reply("!me", msg) do
     id = author_id(msg)
-    name = author_name(msg)
     trader = Broker.Portfolio.Data.fetch_trader(id)
-    reply_to_user(msg, "#{name}\n#{trader}")
+    reply_to_user(msg, trader)
   end
 
   def reply("!msg", msg) do
@@ -60,10 +59,6 @@ defmodule Broker.Bot.Command do
     id
   end
 
-  defp author_name(%{author: %{username: username}}) do
-    username
-  end
-
   defp transform_ticker(ticker) do
     ticker
     |> String.trim()
@@ -87,14 +82,13 @@ defmodule Broker.Bot.Command do
     ticker = transform_ticker(ticker)
 
     id = author_id(msg)
-    name = author_name(msg)
 
     case Broker.Portfolio.Data.trade(id, ticker, shares) do
       {:error, error} ->
         reply_to_user(msg, "I can't do that because #{error}.")
 
       {:ok, trader} ->
-        reply_to_user(msg, "#{name}\n#{trader}")
+        reply_to_user(msg, trader)
     end
   end
 end

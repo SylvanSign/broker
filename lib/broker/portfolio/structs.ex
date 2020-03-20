@@ -1,12 +1,13 @@
 defmodule Broker.Portfolio do
   alias Number.Currency
+  alias TableRex.Table
 
   defmodule Game do
     defstruct traders: %{}
   end
 
   defmodule Trader do
-    defstruct [:id, cash: 1_000, holdings: %{}]
+    defstruct [:id, cash: 100_000, holdings: %{}]
 
     def update_cash(%Trader{cash: cash} = trader, cash_change) do
       balance = cash + cash_change
@@ -34,7 +35,7 @@ defmodule Broker.Portfolio do
     end
 
     defimpl String.Chars do
-      def to_string(%{cash: cash, holdings: holdings}) do
+      def to_string(%{cash: cash, holdings: holdings, id: id}) do
         prices =
           holdings
           |> Map.keys()
@@ -54,25 +55,47 @@ defmodule Broker.Portfolio do
             acc + val
           end)
 
-        holdings_messages =
+        holdings_rows =
           holdings
           |> Enum.map(fn {ticker, shares} ->
             ticker_price = Map.get(prices, ticker)
             value = Map.get(holdings_values, ticker)
 
-            "  #{ticker} => #{shares} x #{Currency.number_to_currency(ticker_price)} = #{
+            [
+              ticker,
+              shares,
+              Currency.number_to_currency(ticker_price),
               Currency.number_to_currency(value)
-            }"
+            ]
           end)
-          |> Enum.join("\n")
 
         net_worth = Currency.number_to_currency(cash + holdings_total)
-        cash = Currency.number_to_currency(cash)
-        portfolio = Currency.number_to_currency(holdings_total)
+        cash_value = Currency.number_to_currency(cash)
+        holdings_value = Currency.number_to_currency(holdings_total)
 
-        "net worth: #{net_worth}\n\ncash: #{cash}\nportfolio: #{portfolio}\nholdings:\n#{
-          holdings_messages
-        }"
+        summary_rows = [
+          divider(),
+          ["Holdings Total", nil, nil, holdings_value],
+          ["Cash", nil, nil, cash_value],
+          divider(),
+          ["Net Worth", nil, nil, net_worth]
+        ]
+
+        make_portfolio_table(holdings_rows ++ summary_rows, id)
+      end
+
+      defp divider do
+        Enum.map(1..4, fn _ -> "------------" end)
+      end
+
+      defp make_portfolio_table(rows, id) do
+        rows
+        |> Table.new(
+          ["Ticker", "Shares", "Price", "Value"],
+          Nostrum.Api.get_user!(id).username
+        )
+        |> Table.put_column_meta(1..3, align: :right)
+        |> Table.render!()
       end
     end
   end
