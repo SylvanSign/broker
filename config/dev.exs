@@ -1,3 +1,7 @@
 import Config
 
-config :broker, data_path: "data"
+config :broker,
+  data_path: "data"
+
+config :remix,
+  escript: true
