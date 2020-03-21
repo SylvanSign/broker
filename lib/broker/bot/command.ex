@@ -25,15 +25,21 @@ defmodule Broker.Bot.Command do
 
   def reply("!report", msg) do
     all_traders_worth_data()
-    |> Enum.map(fn {nw, %{id: id}} ->
-      [Nostrum.Api.get_user!(id).username, Currency.number_to_currency(nw)]
+    |> Enum.map(fn {nw, %{id: id, holdings: holdings}} ->
+      hs =
+        holdings
+        |> Map.keys()
+        |> Enum.sort()
+        |> Enum.join(" | ")
+
+      [Nostrum.Api.get_user!(id).username, Currency.number_to_currency(nw), hs]
     end)
     |> Enum.with_index(1)
-    |> Enum.map(fn {[username, nw], rank} ->
-      [rank, username, nw]
+    |> Enum.map(fn {trader_columns, rank} ->
+      [rank | trader_columns]
     end)
     |> Table.new(
-      ["Rank", "Username", "Net Worth"],
+      ["Rank", "Username", "Net Worth", "Holdings"],
       "Leaderboard"
     )
     |> Table.put_column_meta(2, align: :right)
