@@ -2,6 +2,7 @@ defmodule Broker.Bot.Command do
   alias Nostrum.Api
   alias Nostrum.Struct.User
   alias Number.Currency
+  alias TableRex.Table
 
   def reply("!price " <> ticker, msg) do
     ticker_info(ticker, msg)
@@ -17,20 +18,39 @@ defmodule Broker.Bot.Command do
 
   def reply("!me", msg) do
     id = author_id(msg)
-    trader = Broker.Portfolio.Data.fetch_trader(id)
-    reply_to_user(msg, trader)
+
+    Broker.Portfolio.Data.fetch_trader(id)
+    |> respond_to_user(msg)
+  end
+
+  def reply("!report", msg) do
+    all_traders_worth_data()
+    |> Enum.map(fn {nw, %{id: id}} ->
+      [Nostrum.Api.get_user!(id).username, Currency.number_to_currency(nw)]
+    end)
+    |> Enum.with_index(1)
+    |> Enum.map(fn {[username, nw], rank} ->
+      [rank, username, nw]
+    end)
+    |> Table.new(
+      ["Rank", "Username", "Net Worth"],
+      "Leaderboard"
+    )
+    |> Table.put_column_meta(2, align: :right)
+    |> Table.render!()
+    |> respond_to_user(msg)
   end
 
   def reply("!all", msg) do
-    response =
-      Broker.Portfolio.Data.all_traders()
-      |> Enum.join("\n")
-
-    reply_to_user(msg, response)
+    all_traders_worth_data()
+    |> Enum.each(fn {_, trader} ->
+      Process.sleep(1000)
+      respond(trader, msg)
+    end)
   end
 
   def reply("!msg", msg) do
-    reply_to_user(msg, "#{inspect(msg, pretty: true)}")
+    respond_to_user("#{inspect(msg, pretty: true)}", msg)
   end
 
   def reply("!" <> ticker, msg) do
@@ -41,6 +61,16 @@ defmodule Broker.Bot.Command do
     :ignore
   end
 
+  defp all_traders_worth_data() do
+    Broker.Portfolio.Data.all_traders()
+    |> Enum.map(fn trader ->
+      {Broker.Portfolio.Trader.net_worth(trader), trader}
+    end)
+    |> Enum.sort(fn {nw1, _}, {nw2, _} ->
+      nw1 > nw2
+    end)
+  end
+
   defp ticker_info(ticker, msg) do
     ticker = transform_ticker(ticker)
 
@@ -48,13 +78,18 @@ defmodule Broker.Bot.Command do
       ticker
       |> Broker.MarketData.Quote.ticker()
 
-    reply_to_user(
-      msg,
-      "#{longName} | #{ticker} | #{Currency.number_to_currency(price)}"
+    "#{longName} | #{ticker} | #{Currency.number_to_currency(price)}"
+    |> respond_to_user(msg)
+  end
+
+  defp respond(message, %{channel_id: channel_id}) do
+    Api.create_message(
+      channel_id,
+      "```\n#{message}\n```#{if Mix.env() == :dev, do: " from DEV", else: ""}"
     )
   end
 
-  defp reply_to_user(%{channel_id: channel_id, author: author}, message) do
+  defp respond_to_user(message, %{channel_id: channel_id, author: author}) do
     Api.create_message(
       channel_id,
       "```\n#{message}\n```#{User.mention(author)}#{
@@ -93,10 +128,10 @@ defmodule Broker.Bot.Command do
 
     case Broker.Portfolio.Data.trade(id, ticker, shares) do
       {:error, error} ->
-        reply_to_user(msg, "I can't do that because #{error}.")
+        respond_to_user("I can't do that because #{error}.", msg)
 
       {:ok, trader} ->
-        reply_to_user(msg, trader)
+        respond_to_user(trader, msg)
     end
   end
 end

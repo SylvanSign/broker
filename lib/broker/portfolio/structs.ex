@@ -34,26 +34,47 @@ defmodule Broker.Portfolio do
       end
     end
 
+    def net_worth(trader) do
+      worth(trader)
+      |> Map.get(:net_worth)
+    end
+
+    def worth(%Trader{holdings: holdings, cash: cash}) do
+      prices =
+        holdings
+        |> Map.keys()
+        |> Broker.MarketData.Quote.price()
+        |> Enum.into(%{})
+
+      holdings_values =
+        holdings
+        |> Enum.into(%{}, fn {ticker, shares} ->
+          ticker_price = Map.get(prices, ticker)
+          value = shares * ticker_price
+          {ticker, value}
+        end)
+
+      holdings_total =
+        Enum.reduce(holdings_values, 0, fn {_, val}, acc ->
+          acc + val
+        end)
+
+      %{
+        holdings_total: holdings_total,
+        net_worth: cash + holdings_total,
+        prices: prices,
+        holdings_values: holdings_values
+      }
+    end
+
     defimpl String.Chars do
-      def to_string(%{cash: cash, holdings: holdings, id: id}) do
-        prices =
-          holdings
-          |> Map.keys()
-          |> Broker.MarketData.Quote.price()
-          |> Enum.into(%{})
-
-        holdings_values =
-          holdings
-          |> Enum.into(%{}, fn {ticker, shares} ->
-            ticker_price = Map.get(prices, ticker)
-            value = shares * ticker_price
-            {ticker, value}
-          end)
-
-        holdings_total =
-          Enum.reduce(holdings_values, 0, fn {_, val}, acc ->
-            acc + val
-          end)
+      def to_string(%{cash: cash, holdings: holdings, id: id} = trader) do
+        %{
+          net_worth: net_worth,
+          holdings_total: holdings_total,
+          prices: prices,
+          holdings_values: holdings_values
+        } = Trader.worth(trader)
 
         holdings_rows =
           holdings
@@ -69,7 +90,7 @@ defmodule Broker.Portfolio do
             ]
           end)
 
-        net_worth = Currency.number_to_currency(cash + holdings_total)
+        net_worth_value = Currency.number_to_currency(net_worth)
         cash_value = Currency.number_to_currency(cash)
         holdings_value = Currency.number_to_currency(holdings_total)
 
@@ -78,7 +99,7 @@ defmodule Broker.Portfolio do
           ["Holdings Total", nil, nil, holdings_value],
           ["Cash", nil, nil, cash_value],
           divider(),
-          ["Net Worth", nil, nil, net_worth]
+          ["Net Worth", nil, nil, net_worth_value]
         ]
 
         make_portfolio_table(holdings_rows ++ summary_rows, id)
