@@ -36,10 +36,18 @@ defmodule Broker.Portfolio.Data do
     Util.PersistentCache.put(@name, id, trader)
   end
 
-  def trade(id, ticker, shares) do
+  def trade_by_shares(id, ticker, shares) do
+    trade(&Broker.Portfolio.Trader.trade_by_shares/3, id, ticker, shares)
+  end
+
+  def trade_by_value(id, ticker, value) do
+    trade(&Broker.Portfolio.Trader.trade_by_value/3, id, ticker, value)
+  end
+
+  defp trade(trade_function, id, ticker, amount) do
     trader = Broker.Portfolio.Data.fetch_trader(id)
 
-    with {:ok, updated_trader} <- Broker.Portfolio.Trader.trade(trader, ticker, shares) do
+    with {:ok, updated_trader} <- trade_function.(trader, ticker, amount) do
       store_trader(id, updated_trader)
       {:ok, updated_trader}
     end

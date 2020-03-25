@@ -4,26 +4,92 @@ defmodule Broker.Bot.Command do
   alias Number.Currency
   alias TableRex.Table
 
+  def reply("!p " <> ticker, msg) do
+    price(ticker, msg)
+  end
+
   def reply("!price " <> ticker, msg) do
-    ticker_info(ticker, msg)
+    price(ticker, msg)
+  end
+
+  def reply("!b " <> order, msg) do
+    buy(order, msg)
   end
 
   def reply("!buy " <> order, msg) do
-    trade(:buy, order, msg)
+    buy(order, msg)
+  end
+
+  def reply("!s " <> order, msg) do
+    sell(order, msg)
   end
 
   def reply("!sell " <> order, msg) do
-    trade(:sell, order, msg)
+    sell(order, msg)
+  end
+
+  def reply("!", msg) do
+    me(msg)
   end
 
   def reply("!me", msg) do
+    me(msg)
+  end
+
+  def reply("!report", msg) do
+    report(msg)
+  end
+
+  def reply("!all", msg) do
+    all(msg)
+  end
+
+  def reply("!h", msg) do
+    missing_feature(msg)
+  end
+
+  def reply("!help", msg) do
+    missing_feature(msg)
+  end
+
+  # for debugging only, this can be removed eventually
+  def reply("!msg", msg) do
+    respond_to_user("#{inspect(msg, pretty: true)}", msg)
+  end
+
+  # this is a special price shortcut, but I want it to be the last priority in
+  # case we get ambiguous conflicts like `!all`, which could mean either
+  # - "price ALL" (Allstate)
+  # or
+  # - "show me all portfolios"
+  def reply("!" <> ticker, msg) do
+    price(ticker, msg)
+  end
+
+  def reply(_contents, _msg) do
+    :ignore
+  end
+
+  defp price(ticker, msg) do
+    ticker_info(ticker, msg)
+  end
+
+  defp buy(order, msg) do
+    trade(:buy, order, msg)
+  end
+
+  defp sell(order, msg) do
+    trade(:sell, order, msg)
+  end
+
+  defp me(msg) do
     id = author_id(msg)
 
     Broker.Portfolio.Data.fetch_trader(id)
     |> respond_to_user(msg)
   end
 
-  def reply("!report", msg) do
+  defp report(msg) do
     all_traders_worth_data()
     |> Enum.map(fn {nw, %{id: id, holdings: holdings}} ->
       hs =
@@ -47,7 +113,7 @@ defmodule Broker.Bot.Command do
     |> respond_to_user(msg)
   end
 
-  def reply("!all", msg) do
+  defp all(msg) do
     all_traders_worth_data()
     |> Enum.each(fn {_, trader} ->
       Process.sleep(1000)
@@ -55,16 +121,15 @@ defmodule Broker.Bot.Command do
     end)
   end
 
-  def reply("!msg", msg) do
-    respond_to_user("#{inspect(msg, pretty: true)}", msg)
-  end
+  defp missing_feature(%{channel_id: channel_id, author: author}) do
+    # TODO, create actual help display
 
-  def reply("!" <> ticker, msg) do
-    ticker_info(ticker, msg)
-  end
-
-  def reply(_contents, _msg) do
-    :ignore
+    Api.create_message(
+      channel_id,
+      "Somebody needs to teach me how to reply to this!\nThat can be done by contributing to https://github.com/SylvanSign/broker\n\nAre you the chosen one, #{
+        User.mention(author)
+      }?"
+    )
   end
 
   defp all_traders_worth_data() do
@@ -91,16 +156,14 @@ defmodule Broker.Bot.Command do
   defp respond(message, %{channel_id: channel_id}) do
     Api.create_message(
       channel_id,
-      "```\n#{message}\n```#{if Mix.env() == :dev, do: " from DEV", else: ""}"
+      "```\n#{message}\n```"
     )
   end
 
   defp respond_to_user(message, %{channel_id: channel_id, author: author}) do
     Api.create_message(
       channel_id,
-      "```\n#{message}\n```#{User.mention(author)}#{
-        if Mix.env() == :dev, do: " from DEV", else: ""
-      }"
+      "```\n#{message}\n```#{User.mention(author)}"
     )
   end
 
@@ -114,25 +177,42 @@ defmodule Broker.Bot.Command do
     |> String.upcase()
   end
 
-  defp trade(type, order, msg) do
-    [shares_str, ticker] =
+  defp trade(trade_type, order, msg) do
+    [amount_string, ticker] =
       order
       |> String.split()
       |> Enum.sort()
 
-    {shares, ""} = Integer.parse(shares_str)
+    {amount_type, amount} =
+      if String.starts_with?(amount_string, "$") do
+        ["", amount_string] = String.split(amount_string, "$")
+        {amount, ""} = Float.parse(amount_string)
+        {:value, amount}
+      else
+        {amount, ""} = Integer.parse(amount_string)
 
-    shares =
-      case type do
-        :buy -> shares
-        :sell -> -shares
+        {:shares, amount}
+      end
+
+    amount =
+      case trade_type do
+        :buy -> amount
+        :sell -> -amount
       end
 
     ticker = transform_ticker(ticker)
-
     id = author_id(msg)
 
-    case Broker.Portfolio.Data.trade(id, ticker, shares) do
+    trade_function =
+      case amount_type do
+        :value ->
+          &Broker.Portfolio.Data.trade_by_value/3
+
+        :shares ->
+          &Broker.Portfolio.Data.trade_by_shares/3
+      end
+
+    case trade_function.(id, ticker, amount) do
       {:error, error} ->
         respond_to_user("I can't do that because #{error}.", msg)
 

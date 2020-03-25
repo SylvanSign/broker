@@ -19,32 +19,56 @@ defmodule Broker.Portfolio do
       end
     end
 
-    def update_holdings(%Trader{holdings: holdings} = trader, ticker, share_change) do
+    def update_holdings(
+          %Trader{holdings: holdings} = trader,
+          ticker,
+          share_adjust,
+          share_price
+        ) do
       shares = Map.get(holdings, ticker, 0)
-      balance = shares + share_change
+      balance = shares + share_adjust
 
-      if balance < 0 do
-        {:error, "you don't have enough #{ticker} shares"}
+      if shares == 0 and balance < 0 do
+        {:error, "you don't have any #{ticker} shares"}
       else
-        if balance == 0 do
-          {:ok, %Trader{trader | holdings: Map.delete(holdings, ticker)}}
+        if balance < 0 do
+          # sell as much as we can
+          cash_adjust = -(shares * share_price)
+
+          {:ok, %Trader{trader | holdings: Map.delete(holdings, ticker)}, cash_adjust}
         else
-          {:ok, %Trader{trader | holdings: Map.put(holdings, ticker, balance)}}
+          # sell exactly as much as we were told
+          cash_adjust = -(share_adjust * share_price)
+
+          if balance == 0 do
+            updated_trader = %Trader{trader | holdings: Map.delete(holdings, ticker)}
+            {:ok, updated_trader, cash_adjust}
+          else
+            updated_trader = %Trader{trader | holdings: Map.put(holdings, ticker, balance)}
+            {:ok, updated_trader, cash_adjust}
+          end
         end
       end
     end
 
-    def trade(trader, ticker, shares) do
-      price_per_share =
+    def trade_by_shares(trader, ticker, shares) do
+      share_price =
         ticker
         |> Broker.MarketData.Quote.price()
 
-      value = price_per_share * shares
+      trade(trader, ticker, shares, share_price)
+    end
 
-      with {:ok, trader} <- Trader.update_cash(trader, -value),
-           {:ok, trader} <- Trader.update_holdings(trader, ticker, shares) do
-        {:ok, trader}
-      end
+    def trade_by_value(trader, ticker, value) do
+      share_price =
+        ticker
+        |> Broker.MarketData.Quote.price()
+
+      shares =
+        (value / share_price)
+        |> trade_amount_floor()
+
+      trade(trader, ticker, shares, share_price)
     end
 
     def net_worth(trader) do
@@ -79,6 +103,17 @@ defmodule Broker.Portfolio do
         holdings_values: holdings_values
       }
     end
+
+    defp trade(trader, ticker, share_adjust, share_price) do
+      with {:ok, trader, cash_adjust} <-
+             Trader.update_holdings(trader, ticker, share_adjust, share_price),
+           {:ok, trader} <- Trader.update_cash(trader, cash_adjust) do
+        {:ok, trader}
+      end
+    end
+
+    defp trade_amount_floor(amount) when amount >= 0, do: floor(amount)
+    defp trade_amount_floor(amount) when amount < 0, do: ceil(amount)
 
     defimpl String.Chars do
       def to_string(%{cash: cash, holdings: holdings, id: id} = trader) do
