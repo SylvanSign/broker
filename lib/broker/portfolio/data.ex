@@ -38,9 +38,10 @@ defmodule Broker.Portfolio.Data do
 
   def trade(id, ticker, shares) do
     trader = Broker.Portfolio.Data.fetch_trader(id)
-    {:ok, updated_trader} = Broker.Portfolio.Trader.trade(trader, ticker, shares)
-    store_trader(id, updated_trader)
 
-    {:ok, updated_trader}
+    with {:ok, updated_trader} <- Broker.Portfolio.Trader.trade(trader, ticker, shares) do
+      store_trader(id, updated_trader)
+      {:ok, updated_trader}
+    end
   end
 end
