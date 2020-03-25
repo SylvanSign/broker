@@ -37,25 +37,10 @@ defmodule Broker.Portfolio.Data do
   end
 
   def trade(id, ticker, shares) do
-    price_per_share =
-      ticker
-      |> Broker.MarketData.Quote.price()
+    trader = Broker.Portfolio.Data.fetch_trader(id)
+    {:ok, updated_trader} = Broker.Portfolio.Trader.trade(trader, ticker, shares)
+    store_trader(id, updated_trader)
 
-    value = price_per_share * shares
-
-    with trader = fetch_trader(id),
-         {:ok, trader} <- Trader.update_cash(trader, -value),
-         {:ok, trader} <- Trader.update_holdings(trader, ticker, shares) do
-      store_trader(id, trader)
-
-      # info = %{
-      #   price_per_share: price_per_share,
-      #   shares: shares,
-      #   cash_adjust: -value,
-      #   trader: trader
-      # }
-
-      {:ok, trader}
-    end
+    {:ok, updated_trader}
   end
 end

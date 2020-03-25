@@ -34,6 +34,19 @@ defmodule Broker.Portfolio do
       end
     end
 
+    def trade(trader, ticker, shares) do
+      price_per_share =
+        ticker
+        |> Broker.MarketData.Quote.price()
+
+      value = price_per_share * shares
+
+      with {:ok, trader} <- Trader.update_cash(trader, -value),
+           {:ok, trader} <- Trader.update_holdings(trader, ticker, shares) do
+        {:ok, trader}
+      end
+    end
+
     def net_worth(trader) do
       worth(trader)
       |> Map.get(:net_worth)
