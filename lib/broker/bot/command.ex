@@ -36,6 +36,10 @@ defmodule Broker.Bot.Command do
     me(msg)
   end
 
+  def reply("!r", msg) do
+    report(msg)
+  end
+
   def reply("!report", msg) do
     report(msg)
   end
