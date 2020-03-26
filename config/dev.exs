@@ -5,3 +5,5 @@ config :broker,
 
 config :remix,
   escript: true
+
+config :logger, level: :error

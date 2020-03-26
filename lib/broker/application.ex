@@ -10,7 +10,8 @@ defmodule Broker.Application do
       # Starts a worker by calling: Broker.Worker.start_link(arg)
       # {Broker.Worker, arg}
       Broker.Portfolio.Data,
-      Broker.Bot
+      Broker.Bot,
+      Broker.Report.Scheduler
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

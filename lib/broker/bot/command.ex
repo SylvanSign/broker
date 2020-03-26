@@ -70,6 +70,29 @@ defmodule Broker.Bot.Command do
     :ignore
   end
 
+  def report_message(title \\ "Leaderboard") do
+    all_traders_worth_data()
+    |> Enum.map(fn {nw, %{id: id, holdings: holdings}} ->
+      hs =
+        holdings
+        |> Map.keys()
+        |> Enum.sort()
+        |> Enum.join(" | ")
+
+      [Nostrum.Api.get_user!(id).username, Currency.number_to_currency(nw), hs]
+    end)
+    |> Enum.with_index(1)
+    |> Enum.map(fn {trader_columns, rank} ->
+      [rank | trader_columns]
+    end)
+    |> Table.new(
+      ["Rank", "Username", "Net Worth", "Holdings"],
+      title
+    )
+    |> Table.put_column_meta(2, align: :right)
+    |> Table.render!()
+  end
+
   defp price(ticker, msg) do
     ticker_info(ticker, msg)
   end
@@ -90,26 +113,7 @@ defmodule Broker.Bot.Command do
   end
 
   defp report(msg) do
-    all_traders_worth_data()
-    |> Enum.map(fn {nw, %{id: id, holdings: holdings}} ->
-      hs =
-        holdings
-        |> Map.keys()
-        |> Enum.sort()
-        |> Enum.join(" | ")
-
-      [Nostrum.Api.get_user!(id).username, Currency.number_to_currency(nw), hs]
-    end)
-    |> Enum.with_index(1)
-    |> Enum.map(fn {trader_columns, rank} ->
-      [rank | trader_columns]
-    end)
-    |> Table.new(
-      ["Rank", "Username", "Net Worth", "Holdings"],
-      "Leaderboard"
-    )
-    |> Table.put_column_meta(2, align: :right)
-    |> Table.render!()
+    report_message()
     |> respond_to_user(msg)
   end
 

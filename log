@@ -1,4 +1,0 @@
-** (CompileError) config/dev.exs:1: undefined function config/2
-    (elixir 1.10.2) lib/code.ex:332: Code.eval_string_with_error_handling/3
-    (stdlib 3.11) erl_eval.erl:680: :erl_eval.do_apply/6
-    (stdlib 3.11) erl_eval.erl:126: :erl_eval.exprs/5
