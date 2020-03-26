@@ -18,7 +18,7 @@ config :broker, Broker.Report.Scheduler,
           "```\n#{Broker.Bot.Command.report_message("Market Open Leaderboard")}\n```"
         )
       end
-    ]
+    ],
     market_close_report: [
       # 4pm ET, M-F
       schedule: "0 16 * * 1-5",
