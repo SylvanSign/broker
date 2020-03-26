@@ -10,8 +10,18 @@ defmodule Broker.Portfolio.Data do
   # PUBLIC API #
   ##############
   def start_link([]) do
-    Agent.start_link(fn ->
-      {:ok, @name} = Util.PersistentCache.load(@name)
+    Agent.start_link(
+      fn ->
+        {:ok, @name} = Util.PersistentCache.load(@name)
+        :ok
+      end,
+      name: @name
+    )
+  end
+
+  def reset do
+    Agent.get(@name, fn _ ->
+      {:ok, @name} = Util.PersistentCache.reset(@name)
       :ok
     end)
   end

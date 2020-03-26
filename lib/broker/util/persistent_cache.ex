@@ -37,6 +37,14 @@ defmodule Util.PersistentCache do
     end
   end
 
+  def reset(table) do
+    file_path = Util.Data.get_path("#{table}.state")
+
+    :ets.delete(table)
+    File.rm!(file_path)
+    load(table)
+  end
+
   defp new(name) when is_atom(name) do
     opts = [
       :named_table,

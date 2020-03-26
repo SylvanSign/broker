@@ -7,15 +7,25 @@ defmodule Broker.Portfolio do
   end
 
   defmodule Trader do
-    defstruct [:id, cash: 100_000, holdings: %{}]
+    defstruct [:id, cash: 1_000, holdings: %{}]
 
-    def update_cash(%Trader{cash: cash} = trader, cash_change) do
-      balance = cash + cash_change
+    def update_cash(%Trader{cash: cash} = trader, cash_adjust, share_adjust, share_price) do
+      balance = cash + cash_adjust
 
-      if balance < 0 do
-        {:error, "you don't have enough cash"}
+      if balance == 0 and balance < 0 do
+        {:error, "you don't have any cash"}
       else
-        {:ok, %Trader{trader | cash: balance |> Float.round(2)}}
+        if balance < 0 do
+          share_adjust =
+            (cash / share_price)
+            |> floor
+
+          balance = cash - share_adjust * share_price
+
+          {:ok, %Trader{trader | cash: balance |> Float.round(2)}, share_adjust}
+        else
+          {:ok, %Trader{trader | cash: balance |> Float.round(2)}, share_adjust}
+        end
       end
     end
 
@@ -33,11 +43,10 @@ defmodule Broker.Portfolio do
       else
         if balance < 0 do
           # sell as much as we can
-          cash_adjust = -(shares * share_price)
+          cash_adjust = shares * share_price
 
           {:ok, %Trader{trader | holdings: Map.delete(holdings, ticker)}, cash_adjust}
         else
-          # sell exactly as much as we were told
           cash_adjust = -(share_adjust * share_price)
 
           if balance == 0 do
@@ -104,11 +113,41 @@ defmodule Broker.Portfolio do
       }
     end
 
+    defp debug(num, trader, ticker, share_adjust, share_price) do
+      IO.puts(
+        "#{num}, trader:\n#{trader}, ticker: #{ticker}, share_adjust: #{share_adjust}, share_price: #{
+          share_price
+        }"
+      )
+    end
+
     defp trade(trader, ticker, share_adjust, share_price) do
-      with {:ok, trader, cash_adjust} <-
-             Trader.update_holdings(trader, ticker, share_adjust, share_price),
-           {:ok, trader} <- Trader.update_cash(trader, cash_adjust) do
-        {:ok, trader}
+      debug("start", trader, ticker, share_adjust, share_price)
+
+      if share_adjust < 0 do
+        # selling shares
+        with {:ok, trader, cash_adjust} <-
+               Trader.update_holdings(trader, ticker, share_adjust, share_price),
+             debug("after holdings", trader, ticker, share_adjust, share_price),
+             IO.puts("$$$$ cash_adjust: #{cash_adjust}"),
+             {:ok, trader, _} <-
+               Trader.update_cash(trader, cash_adjust, share_adjust, share_price) do
+          debug("after cash", trader, ticker, share_adjust, share_price)
+
+          {:ok, trader}
+        end
+      else
+        # buying shares
+        cash_adjust = -(share_adjust * share_price)
+
+        with {:ok, trader, share_adjust} <-
+               Trader.update_cash(trader, cash_adjust, share_adjust, share_price),
+             debug("after cash", trader, ticker, share_adjust, share_price),
+             {:ok, trader, _} <-
+               Trader.update_holdings(trader, ticker, share_adjust, share_price) do
+          debug("after holdings", trader, ticker, share_adjust, share_price)
+          {:ok, trader}
+        end
       end
     end
 
