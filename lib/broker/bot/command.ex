@@ -58,7 +58,7 @@ defmodule Broker.Bot.Command do
 
   # for debugging only, this can be removed eventually
   def reply("!msg", msg) do
-    respond_to_user("#{inspect(msg, pretty: true)}", msg)
+    respond("#{inspect(msg, pretty: true)}", msg)
   end
 
   # this is a special price shortcut, but I want it to be the last priority in
@@ -113,12 +113,12 @@ defmodule Broker.Bot.Command do
     id = author_id(msg)
 
     Broker.Portfolio.Data.fetch_trader(id)
-    |> respond_to_user(msg)
+    |> respond(msg)
   end
 
   defp report(msg) do
     report_message()
-    |> respond_to_user(msg)
+    |> respond(msg)
   end
 
   defp all(msg) do
@@ -158,7 +158,7 @@ defmodule Broker.Bot.Command do
       |> Broker.MarketData.Quote.ticker()
 
     "#{longName} | #{ticker} | #{Currency.number_to_currency(price)}"
-    |> respond_to_user(msg)
+    |> respond(msg)
   end
 
   defp respond(message, %{channel_id: channel_id}) do
@@ -167,14 +167,7 @@ defmodule Broker.Bot.Command do
       "```\n#{message}\n```"
     )
   end
-
-  defp respond_to_user(message, %{channel_id: channel_id, author: author}) do
-    Api.create_message(
-      channel_id,
-      "```\n#{message}\n```#{User.mention(author)}"
-    )
-  end
-
+  
   defp author_id(%{author: %{id: id}}) do
     id
   end
@@ -222,10 +215,10 @@ defmodule Broker.Bot.Command do
 
     case trade_function.(id, ticker, amount) do
       {:error, error} ->
-        respond_to_user("I can't do that because #{error}.", msg)
+        respond("I can't do that because #{error}.", msg)
 
       {:ok, trader} ->
-        respond_to_user(trader, msg)
+        respond(trader, msg)
     end
   end
 end
