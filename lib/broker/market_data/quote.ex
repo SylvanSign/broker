@@ -2,6 +2,8 @@ defmodule Broker.MarketData.Quote do
   @default_fields ~w(
     longName
     regularMarketPrice
+    regularMarketChange
+    regularMarketChangePercent
   )
 
   def price([]) do

@@ -153,21 +153,44 @@ defmodule Broker.Bot.Command do
   defp ticker_info(ticker, msg) do
     ticker = transform_ticker(ticker)
 
-    %{"regularMarketPrice" => price, "longName" => longName} =
+    %{
+      "regularMarketPrice" => price,
+      "longName" => name,
+      "regularMarketChange" => change,
+      "regularMarketChangePercent" => change_percent
+    } =
       ticker
       |> Broker.MarketData.Quote.ticker()
 
-    "#{longName} | #{ticker} | #{Currency.number_to_currency(price)}"
+    price = Currency.number_to_currency(price)
+    price_change_summary = format_price_change(change, change_percent)
+
+    "#{ticker} - #{name}\n#{price}\n#{price_change_summary}"
     |> respond(msg)
+  end
+
+  defp format_price_change(change, change_percent) do
+    change_postitive? = change > 0
+    maybe_plus_sign = if change_postitive?, do: "+", else: ""
+    arrow = if change_postitive?, do: "↑", else: "↓"
+
+    change_money = Currency.number_to_currency(change)
+
+    formatted_change_percent =
+      change_percent
+      |> abs()
+      |> Float.round(2)
+
+    "#{maybe_plus_sign}#{change_money} (#{formatted_change_percent}%) #{arrow}"
   end
 
   defp respond(message, %{channel_id: channel_id}) do
     Api.create_message(
       channel_id,
-      "```\n#{message}\n```"
+      "```diff\n#{message}\n```"
     )
   end
-  
+
   defp author_id(%{author: %{id: id}}) do
     id
   end
