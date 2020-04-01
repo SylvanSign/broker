@@ -158,6 +158,7 @@ defmodule Broker.Bot.Command do
 
     tickers
     |> Broker.MarketData.Quote.ticker()
+    |> Enum.reject(fn {_, info} -> Enum.empty?(info) end)
     |> Enum.map(fn {ticker,
                     %{
                       "regularMarketPrice" => price,

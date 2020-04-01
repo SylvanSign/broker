@@ -11,8 +11,6 @@ TODO for Broker v1.0
       - maybe as a single message report to prevent spamming channel?
   - !orders to show pending trades
     - also show in !me portfolio reports
-- !price changes
-  - support comma separated list of tickers to do batch lookups
 - round against trader in all cases, to prevent abusing cheap stocks
 - !help to document the finalized API
 - reset portfolios to end beta and launch 1.0
