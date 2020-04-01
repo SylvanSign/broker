@@ -12,9 +12,6 @@ TODO for Broker v1.0
   - !orders to show pending trades
     - also show in !me portfolio reports
 - !price changes
-  - new fields to add (with `diff` coloring)
-    - regularmarketchange
-    - regularmarketchangepercent
   - support comma separated list of tickers to do batch lookups
 - round against trader in all cases, to prevent abusing cheap stocks
 - !help to document the finalized API
