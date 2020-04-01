@@ -4,12 +4,12 @@ defmodule Broker.Bot.Command do
   alias Number.Currency
   alias TableRex.Table
 
-  def reply("!p " <> ticker, msg) do
-    price(ticker, msg)
+  def reply("!p " <> tickers, msg) do
+    price(tickers, msg)
   end
 
-  def reply("!price " <> ticker, msg) do
-    price(ticker, msg)
+  def reply("!price " <> tickers, msg) do
+    price(tickers, msg)
   end
 
   def reply("!b " <> order, msg) do
@@ -66,8 +66,8 @@ defmodule Broker.Bot.Command do
   # - "price ALL" (Allstate)
   # or
   # - "show me all portfolios"
-  def reply("!" <> ticker, msg) do
-    price(ticker, msg)
+  def reply("!" <> tickers, msg) do
+    price(tickers, msg)
   end
 
   def reply(_contents, _msg) do
@@ -97,8 +97,8 @@ defmodule Broker.Bot.Command do
     |> Table.render!()
   end
 
-  defp price(ticker, msg) do
-    ticker_info(ticker, msg)
+  defp price(tickers, msg) do
+    ticker_info(tickers, msg)
   end
 
   defp buy(order, msg) do
@@ -150,22 +150,27 @@ defmodule Broker.Bot.Command do
     end)
   end
 
-  defp ticker_info(ticker, msg) do
-    ticker = transform_ticker(ticker)
+  defp ticker_info(tickers, msg) do
+    tickers =
+      tickers
+      |> String.split(" ")
+      |> Enum.map(&transform_ticker/1)
 
-    %{
-      "regularMarketPrice" => price,
-      "longName" => name,
-      "regularMarketChange" => change,
-      "regularMarketChangePercent" => change_percent
-    } =
-      ticker
-      |> Broker.MarketData.Quote.ticker()
+    tickers
+    |> Broker.MarketData.Quote.ticker()
+    |> Enum.map(fn {ticker,
+                    %{
+                      "regularMarketPrice" => price,
+                      "longName" => name,
+                      "regularMarketChange" => change,
+                      "regularMarketChangePercent" => change_percent
+                    }} ->
+      price = Currency.number_to_currency(price)
+      price_change_summary = format_price_change(change, change_percent)
 
-    price = Currency.number_to_currency(price)
-    price_change_summary = format_price_change(change, change_percent)
-
-    "#{ticker} - #{name}\n#{price}\n#{price_change_summary}"
+      "#{ticker} - #{name}\n#{price}\n#{price_change_summary}"
+    end)
+    |> Enum.join("\n\n")
     |> respond(msg)
   end
 
