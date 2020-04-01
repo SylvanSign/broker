@@ -1,5 +1,4 @@
 TODO for Broker v1.0
-- allow trades to be based on dollars or shares
 - delay orders until market open
   - for "realism", delay orders until a few minutes after markets open
   - no leveraging, so we'll immediately take out the cash to cover the pending order
@@ -17,11 +16,6 @@ TODO for Broker v1.0
     - regularmarketchange
     - regularmarketchangepercent
   - support comma separated list of tickers to do batch lookups
-- portfolio reports at market close
-  - something like:
-    - traders |> Enum.map(!me) |> sort_by(net_worth) |> Enum.join("\n"))
 - round against trader in all cases, to prevent abusing cheap stocks
-- ! abbreviations
-  - eg. !p = !price, !b = !buy, etc.
 - !help to document the finalized API
 - reset portfolios to end beta and launch 1.0
