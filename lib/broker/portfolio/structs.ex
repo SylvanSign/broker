@@ -113,27 +113,13 @@ defmodule Broker.Portfolio do
       }
     end
 
-    defp debug(num, trader, ticker, share_adjust, share_price) do
-      IO.puts(
-        "#{num}, trader:\n#{trader}, ticker: #{ticker}, share_adjust: #{share_adjust}, share_price: #{
-          share_price
-        }"
-      )
-    end
-
     defp trade(trader, ticker, share_adjust, share_price) do
-      debug("start", trader, ticker, share_adjust, share_price)
-
       if share_adjust < 0 do
         # selling shares
         with {:ok, trader, cash_adjust} <-
                Trader.update_holdings(trader, ticker, share_adjust, share_price),
-             debug("after holdings", trader, ticker, share_adjust, share_price),
-             IO.puts("$$$$ cash_adjust: #{cash_adjust}"),
              {:ok, trader, _} <-
                Trader.update_cash(trader, cash_adjust, share_adjust, share_price) do
-          debug("after cash", trader, ticker, share_adjust, share_price)
-
           {:ok, trader}
         end
       else
@@ -142,10 +128,8 @@ defmodule Broker.Portfolio do
 
         with {:ok, trader, share_adjust} <-
                Trader.update_cash(trader, cash_adjust, share_adjust, share_price),
-             debug("after cash", trader, ticker, share_adjust, share_price),
              {:ok, trader, _} <-
                Trader.update_holdings(trader, ticker, share_adjust, share_price) do
-          debug("after holdings", trader, ticker, share_adjust, share_price)
           {:ok, trader}
         end
       end
