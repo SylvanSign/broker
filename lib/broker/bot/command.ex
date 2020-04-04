@@ -151,28 +151,29 @@ defmodule Broker.Bot.Command do
   end
 
   defp ticker_info(tickers, msg) do
-    tickers =
+    ticker_infos =
       tickers
       |> String.split(" ")
       |> Enum.map(&transform_ticker/1)
+      |> Broker.MarketData.Quote.ticker()
+      |> Enum.reject(fn {_, info} -> Enum.empty?(info) end)
+      |> Enum.map(fn {ticker,
+                      %{
+                        "regularMarketPrice" => price,
+                        "longName" => name,
+                        "regularMarketChange" => change,
+                        "regularMarketChangePercent" => change_percent
+                      }} ->
+        price = Currency.number_to_currency(price)
+        price_change_summary = format_price_change(change, change_percent)
 
-    tickers
-    |> Broker.MarketData.Quote.ticker()
-    |> Enum.reject(fn {_, info} -> Enum.empty?(info) end)
-    |> Enum.map(fn {ticker,
-                    %{
-                      "regularMarketPrice" => price,
-                      "longName" => name,
-                      "regularMarketChange" => change,
-                      "regularMarketChangePercent" => change_percent
-                    }} ->
-      price = Currency.number_to_currency(price)
-      price_change_summary = format_price_change(change, change_percent)
+        "#{ticker} - #{name}\n#{price}\n#{price_change_summary}"
+      end)
+      |> Enum.join("\n\n")
 
-      "#{ticker} - #{name}\n#{price}\n#{price_change_summary}"
-    end)
-    |> Enum.join("\n\n")
-    |> respond(msg)
+    unless ticker_infos == "" do
+      respond(ticker_infos, msg)
+    end
   end
 
   defp format_price_change(change, change_percent) do
