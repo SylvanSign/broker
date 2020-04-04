@@ -31,9 +31,9 @@ defmodule Broker.MarketData.Quote do
     data(ticker, @default_fields)
   end
 
-  defp data(tickers, fields_to_take \\ :all)
+  def data(tickers, fields_to_take \\ :all)
 
-  defp data(tickers, fields_to_take) when is_list(tickers) do
+  def data(tickers, fields_to_take) when is_list(tickers) do
     tickers = Enum.join(tickers, ",")
 
     quote_request(tickers)
@@ -48,7 +48,7 @@ defmodule Broker.MarketData.Quote do
     end)
   end
 
-  defp data(ticker, fields_to_take) do
+  def data(ticker, fields_to_take) do
     result =
       quote_request(ticker)
       |> hd()

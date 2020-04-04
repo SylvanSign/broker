@@ -12,23 +12,12 @@ config :broker, Broker.Report.Scheduler,
     market_open_report: [
       # 9:30am ET, M-F
       schedule: "30 9 * * 1-5",
-      task: fn ->
-        Nostrum.Api.create_message(
-          686_660_042_208_182_397,
-          "```\n#{Broker.Bot.Command.report_message("Market Open Leaderboard")}\n```"
-        )
-      end
+      task: fn -> Broker.Report.Scheduler.report("Market Open Leaderboard") end
     ],
     market_close_report: [
       # 4pm ET, M-F
       schedule: "0 16 * * 1-5",
-      timezone: "America/New_York",
-      task: fn ->
-        Nostrum.Api.create_message(
-          686_660_042_208_182_397,
-          "```\n#{Broker.Bot.Command.report_message("Market Close Leaderboard")}\n```"
-        )
-      end
+      task: fn -> Broker.Report.Scheduler.report("Market Close Leaderboard") end
     ]
   ]
 
