@@ -112,7 +112,7 @@ defmodule Broker.Bot.Command do
   defp me(msg) do
     id = author_id(msg)
 
-    Broker.Portfolio.Data.fetch_trader(id)
+    Broker.Portfolio.Database.fetch_trader(id)
     |> respond(msg)
   end
 
@@ -141,7 +141,7 @@ defmodule Broker.Bot.Command do
   end
 
   defp all_traders_worth_data() do
-    Broker.Portfolio.Data.all_traders()
+    Broker.Portfolio.Database.all_traders()
     |> Enum.map(fn trader ->
       {Broker.Portfolio.Trader.net_worth(trader), trader}
     end)
@@ -237,10 +237,10 @@ defmodule Broker.Bot.Command do
     trade_function =
       case amount_type do
         :value ->
-          &Broker.Portfolio.Data.trade_by_value/3
+          &Broker.Portfolio.Database.trade_by_value/3
 
         :shares ->
-          &Broker.Portfolio.Data.trade_by_shares/3
+          &Broker.Portfolio.Database.trade_by_shares/3
       end
 
     case trade_function.(id, ticker, amount) do

@@ -1,4 +1,4 @@
-defmodule Util.Data do
+defmodule Util.DataPath do
   def make_data_path do
     path = Application.fetch_env!(:broker, :data_path)
     File.mkdir_p!(path)

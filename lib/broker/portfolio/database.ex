@@ -1,6 +1,4 @@
-require Logger
-
-defmodule Broker.Portfolio.Data do
+defmodule Broker.Portfolio.Database do
   use Agent
   alias Broker.Portfolio.Trader
 
@@ -55,7 +53,7 @@ defmodule Broker.Portfolio.Data do
   end
 
   defp trade(trade_function, id, ticker, amount) do
-    trader = Broker.Portfolio.Data.fetch_trader(id)
+    trader = Broker.Portfolio.Database.fetch_trader(id)
 
     with {:ok, updated_trader} <- trade_function.(trader, ticker, amount) do
       store_trader(id, updated_trader)

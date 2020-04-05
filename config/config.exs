@@ -12,12 +12,18 @@ config :broker, Broker.Report.Scheduler,
     market_open_report: [
       # 9:30am ET, M-F
       schedule: "30 9 * * 1-5",
-      task: fn -> Broker.Report.Scheduler.report("Market Open Leaderboard") end
+      task: fn ->
+        Broker.Portfolio.OrderProcessor.open()
+        Broker.Report.Scheduler.report("Market Open Leaderboard")
+      end
     ],
     market_close_report: [
       # 4pm ET, M-F
       schedule: "0 16 * * 1-5",
-      task: fn -> Broker.Report.Scheduler.report("Market Close Leaderboard") end
+      task: fn ->
+        Broker.Portfolio.OrderProcessor.close()
+        Broker.Report.Scheduler.report("Market Close Leaderboard")
+      end
     ]
   ]
 

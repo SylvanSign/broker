@@ -9,7 +9,8 @@ defmodule Broker.Application do
     children = [
       # Starts a worker by calling: Broker.Worker.start_link(arg)
       # {Broker.Worker, arg}
-      Broker.Portfolio.Data,
+      Broker.Portfolio.Database,
+      Broker.Portfolio.OrderProcessor,
       Broker.Bot,
       Broker.Report.Scheduler
     ]
