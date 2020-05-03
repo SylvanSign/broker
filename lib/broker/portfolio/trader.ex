@@ -92,7 +92,6 @@ defmodule Broker.Portfolio.Trader do
       holdings
       |> Map.keys()
       |> Broker.MarketData.Quote.price()
-      |> Enum.into(%{})
 
     holdings_values =
       holdings
@@ -115,7 +114,7 @@ defmodule Broker.Portfolio.Trader do
     }
   end
 
-  defp trade(trader, ticker, share_adjust, share_price) do
+  def trade(trader, ticker, share_adjust, share_price) do
     if share_adjust < 0 do
       # selling shares
       with {:ok, trader, cash_adjust} <-
@@ -137,8 +136,8 @@ defmodule Broker.Portfolio.Trader do
     end
   end
 
-  defp trade_amount_floor(amount) when amount >= 0, do: floor(amount)
-  defp trade_amount_floor(amount) when amount < 0, do: ceil(amount)
+  def trade_amount_floor(amount) when amount >= 0, do: floor(amount)
+  def trade_amount_floor(amount) when amount < 0, do: ceil(amount)
 
   defimpl String.Chars do
     def to_string(%{cash: cash, holdings: holdings, id: id} = trader) do
