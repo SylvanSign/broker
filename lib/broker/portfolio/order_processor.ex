@@ -1,5 +1,9 @@
 defmodule Broker.Portfolio.OrderProcessor do
   use GenStateMachine
+  alias Broker.Portfolio.Database
+  alias Broker.Portfolio.Trader
+  alias Broker.Portfolio.Orders
+
   @name __MODULE__
 
   @monday 1
@@ -30,21 +34,56 @@ defmodule Broker.Portfolio.OrderProcessor do
     GenStateMachine.cast(@name, :close)
   end
 
-  def trade(info) do
-    GenStateMachine.cast(@name, {:trade, info})
+  def trade(amount_type, id, ticker, amount, msg) do
+    GenStateMachine.cast(@name, {:trade, amount_type, id, ticker, amount, msg})
   end
 
   def handle_event({:call, from}, :state, state, data) do
     {:next_state, state, data, [{:reply, from, state}]}
   end
 
-  def handle_event(:cast, {:trade, info}, :closed, data) do
+  def handle_event(:cast, {:trade, amount_type, id, ticker, amount, msg}, :closed, data) do
     IO.puts("asked to trade when closed, so gonna queue it up...")
+
+    order_fn =
+      if amount > 0 do
+        &Orders.buy_order/3
+      else
+        &Orders.sell_order/3
+      end
+
+    trader =
+      Database.fetch_trader(id)
+      |> Trader.update_orders(fn orders ->
+        order_fn.(orders, ticker, {amount_type, id, ticker, amount, msg})
+      end)
+      |> Database.store_trader()
+
+    IO.puts(trader)
+
     {:next_state, :closed, data}
   end
 
-  def handle_event(:cast, {:trade, info}, :open, data) do
+  def handle_event(:cast, {:trade, amount_type, id, ticker, amount, msg}, :open, data) do
     IO.puts("Open for business, so gonna make trade now...")
+
+    trade_function =
+      case amount_type do
+        :value ->
+          &Database.trade_by_value/3
+
+        :shares ->
+          &Database.trade_by_shares/3
+      end
+
+    case trade_function.(id, ticker, amount) do
+      {:error, error} ->
+        Broker.Bot.Command.respond("I can't do that because #{error}.", msg)
+
+      {:ok, trader} ->
+        Broker.Bot.Command.respond(trader, msg)
+    end
+
     {:next_state, :open, data}
   end
 

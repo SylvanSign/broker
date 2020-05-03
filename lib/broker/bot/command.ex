@@ -191,7 +191,7 @@ defmodule Broker.Bot.Command do
     "#{maybe_plus_sign}#{change_money} (#{formatted_change_percent}%) #{arrow}"
   end
 
-  defp respond(message, %{channel_id: channel_id}) do
+  def respond(message, %{channel_id: channel_id}) do
     Api.create_message(
       channel_id,
       "```diff\n#{message}\n```"
@@ -234,21 +234,6 @@ defmodule Broker.Bot.Command do
     ticker = transform_ticker(ticker)
     id = author_id(msg)
 
-    trade_function =
-      case amount_type do
-        :value ->
-          &Broker.Portfolio.Database.trade_by_value/3
-
-        :shares ->
-          &Broker.Portfolio.Database.trade_by_shares/3
-      end
-
-    case trade_function.(id, ticker, amount) do
-      {:error, error} ->
-        respond("I can't do that because #{error}.", msg)
-
-      {:ok, trader} ->
-        respond(trader, msg)
-    end
+    Broker.Portfolio.OrderProcessor.trade(amount_type, id, ticker, amount, msg)
   end
 end

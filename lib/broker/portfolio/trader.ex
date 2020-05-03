@@ -6,6 +6,11 @@ defmodule Broker.Portfolio.Trader do
 
   defstruct [:id, cash: 10_000, holdings: %{}, orders: %Orders{}]
 
+  def update_orders(%Trader{orders: orders} = trader, func) do
+    orders = func.(orders)
+    %Trader{trader | orders: orders}
+  end
+
   def update_cash(%Trader{cash: cash} = trader, cash_adjust, share_adjust, share_price) do
     balance = cash + cash_adjust
 
