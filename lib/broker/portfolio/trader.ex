@@ -4,7 +4,7 @@ defmodule Broker.Portfolio.Trader do
   alias Number.Currency
   alias TableRex.Table
 
-  defstruct [:id, cash: 10_000, holdings: %{}, orders: %Orders{}]
+  defstruct [:id, cash: 900, holdings: %{}, orders: %Orders{}]
 
   def update_orders(%Trader{orders: orders} = trader, func) do
     orders = func.(orders)
@@ -62,18 +62,13 @@ defmodule Broker.Portfolio.Trader do
     end
   end
 
-  def trade_by_shares(trader, ticker, shares) do
-    share_price =
-      ticker
-      |> Broker.MarketData.Quote.price()
-
+  def trade_by_shares(trader, ticker, shares, share_price \\ nil) do
+    share_price = share_price || Broker.MarketData.Quote.price(ticker)
     trade(trader, ticker, shares, share_price)
   end
 
-  def trade_by_value(trader, ticker, value) do
-    share_price =
-      ticker
-      |> Broker.MarketData.Quote.price()
+  def trade_by_value(trader, ticker, value, share_price \\ nil) do
+    share_price = share_price || Broker.MarketData.Quote.price(ticker)
 
     shares =
       (value / share_price)
@@ -140,7 +135,7 @@ defmodule Broker.Portfolio.Trader do
   def trade_amount_floor(amount) when amount < 0, do: ceil(amount)
 
   defimpl String.Chars do
-    def to_string(%{cash: cash, holdings: holdings, id: id} = trader) do
+    def to_string(%{cash: cash, holdings: holdings, id: id, orders: orders} = trader) do
       %{
         net_worth: net_worth,
         holdings_total: holdings_total,
@@ -171,10 +166,12 @@ defmodule Broker.Portfolio.Trader do
         ["Holdings Total", nil, nil, holdings_value],
         ["Cash", nil, nil, cash_value],
         divider(),
-        ["Net Worth", nil, nil, net_worth_value]
+        ["Net Worth", nil, nil, net_worth_value],
+        divider(),
+        divider()
       ]
 
-      make_portfolio_table(holdings_rows ++ summary_rows, id)
+      make_portfolio_table(holdings_rows ++ summary_rows ++ order_rows(orders), id)
     end
 
     defp divider do
@@ -189,6 +186,26 @@ defmodule Broker.Portfolio.Trader do
       )
       |> Table.put_column_meta(1..3, align: :right)
       |> Table.render!()
+    end
+
+    defp order_rows(%Orders{sell: sell, buy: buy, pending_buys: pending_buys} = orders) do
+      sells = buy_or_sell_orders_rows(sell, "Sell")
+
+      buys = buy_or_sell_orders_rows(buy, "Buy")
+
+      [["Ticker", "Buy/Sell", "Shares", "Price"], divider()] ++ sells ++ [divider()] ++ buys
+    end
+
+    defp buy_or_sell_orders_rows(buy_or_sell_orders, kind) do
+      Enum.map(buy_or_sell_orders, fn {ticker, {amount, value}} ->
+        case amount do
+          :shares ->
+            [ticker, kind, value, nil]
+
+          :value ->
+            [ticker, kind, nil, Currency.number_to_currency(value)]
+        end
+      end)
     end
   end
 end

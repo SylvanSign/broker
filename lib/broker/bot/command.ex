@@ -4,6 +4,14 @@ defmodule Broker.Bot.Command do
   alias Number.Currency
   alias TableRex.Table
 
+  def reply("!c " <> tickers, msg) do
+    cancel_orders(tickers, msg)
+  end
+
+  def reply("!cancel " <> tickers, msg) do
+    cancel_orders(tickers, msg)
+  end
+
   def reply("!p " <> tickers, msg) do
     price(tickers, msg)
   end
@@ -173,6 +181,19 @@ defmodule Broker.Bot.Command do
 
     unless ticker_infos == "" do
       respond(ticker_infos, msg)
+    end
+  end
+
+  defp cancel_orders(tickers, msg) do
+    tickers_to_cancel =
+      tickers
+      |> String.split(" ")
+      |> Enum.map(&transform_ticker/1)
+
+    unless tickers_to_cancel == "" do
+      id = author_id(msg)
+
+      Broker.Portfolio.OrderProcessor.cancel(id, tickers_to_cancel, msg)
     end
   end
 

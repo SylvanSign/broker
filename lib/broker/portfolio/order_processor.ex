@@ -38,8 +38,29 @@ defmodule Broker.Portfolio.OrderProcessor do
     GenStateMachine.cast(@name, {:trade, amount_type, id, ticker, amount, msg})
   end
 
+  def cancel(id, tickers_to_cancel, msg) do
+    GenStateMachine.cast(@name, {:cancel, id, tickers_to_cancel, msg})
+  end
+
   def handle_event({:call, from}, :state, state, data) do
     {:next_state, state, data, [{:reply, from, state}]}
+  end
+
+  def handle_event(:cast, {:cancel, id, tickers_to_cancel, msg}, :closed, data) do
+    trader =
+      Database.fetch_trader(id)
+      |> Trader.update_orders(fn orders ->
+        Orders.cancel(orders, tickers_to_cancel)
+      end)
+      |> Database.store_trader()
+
+    Broker.Bot.Command.respond(trader, msg)
+    {:next_state, :closed, data}
+  end
+
+  def handle_event(:cast, {:cancel, _, _, msg}, :open, data) do
+    Broker.Bot.Command.respond("Markets are open, no orders to cancel", msg)
+    {:next_state, :open, data}
   end
 
   def handle_event(:cast, {:trade, amount_type, id, ticker, amount, msg}, :closed, data) do
@@ -89,7 +110,7 @@ defmodule Broker.Portfolio.OrderProcessor do
   end
 
   def handle_event(:cast, :open, _, data) do
-    # execute all queued orders, in a background task somehow...
+    execute_orders()
     {:next_state, :open, data}
   end
 
@@ -105,22 +126,7 @@ defmodule Broker.Portfolio.OrderProcessor do
   end
 
   def execute_orders do
-    # [
-    #   %Broker.Portfolio.Trader{
-    #     cash: 10000,
-    #     holdings: %{},
-    #     id: 694717937239457827,
-    #     orders: %Broker.Portfolio.Orders{
-    #       buy: %{
-    #         "F" => {:shares, 10},
-    #         "VOO" => {:shares, 1}
-    #       },
-    #       pending_buys: {["F"], ["VOO"]},
-    #       sell: %{"F" => {:shares, -2}}
-    #     }
-    #   }
-    # ]
-
+    IO.puts("executing orders...")
     traders = Database.all_traders()
 
     price_map =
@@ -139,20 +145,16 @@ defmodule Broker.Portfolio.OrderProcessor do
       Enum.reduce(sells, trader, fn {ticker, {amount_type, amount}}, trader ->
         share_price = price_map[ticker]
 
-        result =
+        trade_function =
           case amount_type do
-            :shares ->
-              Trader.trade(trader, ticker, amount, share_price)
-
             :value ->
-              shares =
-                (amount / share_price)
-                |> Trader.trade_amount_floor()
+              &Trader.trade_by_value/4
 
-              Trader.trade(trader, ticker, shares, share_price)
+            :shares ->
+              &Trader.trade_by_shares/4
           end
 
-        case result do
+        case trade_function.(trader, ticker, amount, share_price) do
           {:ok, updated_trader} -> updated_trader
           _ -> trader
         end
@@ -167,20 +169,16 @@ defmodule Broker.Portfolio.OrderProcessor do
         {amount_type, amount} = buys[ticker]
         share_price = price_map[ticker]
 
-        result =
+        trade_function =
           case amount_type do
-            :shares ->
-              Trader.trade(trader, ticker, amount, share_price)
-
             :value ->
-              shares =
-                (amount / share_price)
-                |> Trader.trade_amount_floor()
+              &Trader.trade_by_value/4
 
-              Trader.trade(trader, ticker, shares, share_price)
+            :shares ->
+              &Trader.trade_by_shares/4
           end
 
-        case result do
+        case trade_function.(trader, ticker, amount, share_price) do
           {:ok, updated_trader} -> updated_trader
           _ -> trader
         end
@@ -189,13 +187,12 @@ defmodule Broker.Portfolio.OrderProcessor do
   end
 
   def clear_orders(traders) do
-    traders
-    # Enum.map(traders, &Database.store_trader(%{&1 | orders: %Orders{}}))
+    Enum.map(traders, &Database.store_trader(%{&1 | orders: %Orders{}}))
   end
 
   def collect_tickers_to_price(traders) do
     traders
-    |> Enum.reduce(MapSet.new(), fn %{orders: orders} = trader, ticker_set ->
+    |> Enum.reduce(MapSet.new(), fn %{orders: orders}, ticker_set ->
       sell_tickers = orders.sell |> Map.keys() |> MapSet.new()
       buy_tickers = orders.buy |> Map.keys() |> MapSet.new()
 

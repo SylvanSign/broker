@@ -3,6 +3,26 @@ defmodule Broker.Portfolio.Orders do
 
   defstruct sell: %{}, buy: %{}, pending_buys: :queue.new()
 
+  def cancel(
+        %Orders{sell: sell, buy: buy, pending_buys: pending_buys} = orders,
+        tickers_to_cancel
+      ) do
+    Enum.reduce(tickers_to_cancel, orders, fn ticker, orders ->
+      updated_pending_buys =
+        pending_buys
+        |> :queue.to_list()
+        |> List.delete(ticker)
+        |> :queue.from_list()
+
+      %Orders{
+        orders
+        | sell: Map.delete(sell, ticker),
+          buy: Map.delete(buy, ticker),
+          pending_buys: updated_pending_buys
+      }
+    end)
+  end
+
   def sell_order(%Orders{sell: sell} = orders, ticker, order) do
     sell = Map.put(sell, ticker, order)
     %Orders{orders | sell: sell}
@@ -22,7 +42,7 @@ defmodule Broker.Portfolio.Orders do
 
     pending_buys =
       case existing_order do
-        nil -> :queue.cons(ticker, pending_buys)
+        nil -> :queue.in(ticker, pending_buys)
         _ -> pending_buys
       end
 
