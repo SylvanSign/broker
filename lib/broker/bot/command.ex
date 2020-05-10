@@ -4,6 +4,14 @@ defmodule Broker.Bot.Command do
   alias Number.Currency
   alias TableRex.Table
 
+  def reply("!c " <> tickers, msg) do
+    cancel_orders(tickers, msg)
+  end
+
+  def reply("!cancel " <> tickers, msg) do
+    cancel_orders(tickers, msg)
+  end
+
   def reply("!p " <> tickers, msg) do
     price(tickers, msg)
   end
@@ -112,7 +120,7 @@ defmodule Broker.Bot.Command do
   defp me(msg) do
     id = author_id(msg)
 
-    Broker.Portfolio.Data.fetch_trader(id)
+    Broker.Portfolio.Database.fetch_trader(id)
     |> respond(msg)
   end
 
@@ -141,7 +149,7 @@ defmodule Broker.Bot.Command do
   end
 
   defp all_traders_worth_data() do
-    Broker.Portfolio.Data.all_traders()
+    Broker.Portfolio.Database.all_traders()
     |> Enum.map(fn trader ->
       {Broker.Portfolio.Trader.net_worth(trader), trader}
     end)
@@ -176,6 +184,19 @@ defmodule Broker.Bot.Command do
     end
   end
 
+  defp cancel_orders(tickers, msg) do
+    tickers_to_cancel =
+      tickers
+      |> String.split(" ")
+      |> Enum.map(&transform_ticker/1)
+
+    unless tickers_to_cancel == "" do
+      id = author_id(msg)
+
+      Broker.Portfolio.OrderProcessor.cancel(id, tickers_to_cancel, msg)
+    end
+  end
+
   defp format_price_change(change, change_percent) do
     change_postitive? = change > 0
     maybe_plus_sign = if change_postitive?, do: "+", else: ""
@@ -191,7 +212,7 @@ defmodule Broker.Bot.Command do
     "#{maybe_plus_sign}#{change_money} (#{formatted_change_percent}%) #{arrow}"
   end
 
-  defp respond(message, %{channel_id: channel_id}) do
+  def respond(message, %{channel_id: channel_id}) do
     Api.create_message(
       channel_id,
       "```diff\n#{message}\n```"
@@ -234,21 +255,6 @@ defmodule Broker.Bot.Command do
     ticker = transform_ticker(ticker)
     id = author_id(msg)
 
-    trade_function =
-      case amount_type do
-        :value ->
-          &Broker.Portfolio.Data.trade_by_value/3
-
-        :shares ->
-          &Broker.Portfolio.Data.trade_by_shares/3
-      end
-
-    case trade_function.(id, ticker, amount) do
-      {:error, error} ->
-        respond("I can't do that because #{error}.", msg)
-
-      {:ok, trader} ->
-        respond(trader, msg)
-    end
+    Broker.Portfolio.OrderProcessor.trade(amount_type, id, ticker, amount, msg)
   end
 end

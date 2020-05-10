@@ -21,24 +21,24 @@ defmodule Util.PersistentCache do
   end
 
   defp save(table) do
-    file_path = Util.Data.get_path("#{table}.state")
+    file_path = Util.DataPath.get_path("#{table}.state")
     # Note: :ets.tab2file/2 writes the file asynchronously
     :ets.tab2file(table, String.to_atom(file_path))
   end
 
   def load(table) do
-    file_path = Util.Data.get_path("#{table}.state")
+    file_path = Util.DataPath.get_path("#{table}.state")
 
     if File.exists?(file_path) do
       :ets.file2tab(String.to_atom(file_path))
     else
-      Util.Data.make_data_path()
+      Util.DataPath.make_data_path()
       {:ok, new(table)}
     end
   end
 
   def reset(table) do
-    file_path = Util.Data.get_path("#{table}.state")
+    file_path = Util.DataPath.get_path("#{table}.state")
 
     :ets.delete(table)
     File.rm!(file_path)

@@ -34,6 +34,8 @@ defmodule Broker.MixProject do
       {:quantum, "~> 3.0-rc"},
       # timezone data for quantum (above)
       {:tzdata, "~> 1.0.3"},
+      # generic state machine, used for trades/orders
+      {:gen_state_machine, "~> 2.1.0"},
       # automatically "live-reload" the dev code locally
       {:remix, "~> 0.0.1", only: :dev}
       # {:dep_from_hexpm, "~> 0.3.0"},

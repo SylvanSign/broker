@@ -12,7 +12,7 @@ defmodule Broker.MarketData.Quote do
 
   def price(tickers) when is_list(tickers) do
     data(tickers, ["regularMarketPrice"])
-    |> Enum.map(fn {ticker, %{"regularMarketPrice" => p}} ->
+    |> Enum.into(%{}, fn {ticker, %{"regularMarketPrice" => p}} ->
       {ticker, Float.round(p, 2)}
     end)
   end
