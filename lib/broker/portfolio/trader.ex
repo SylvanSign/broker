@@ -4,7 +4,7 @@ defmodule Broker.Portfolio.Trader do
   alias Number.Currency
   alias TableRex.Table
 
-  defstruct [:id, cash: 900, holdings: %{}, orders: %Orders{}]
+  defstruct [:id, cash: 10_000, holdings: %{}, orders: %Orders{}]
 
   def update_orders(%Trader{orders: orders} = trader, func) do
     orders = func.(orders)
