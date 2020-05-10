@@ -21,6 +21,7 @@ config :broker, Broker.Report.Scheduler,
       schedule: "31 9 * * 1-5",
       task: fn ->
         Broker.Portfolio.OrderProcessor.open()
+        Broker.Report.Scheduler.trading_open_alert()
       end
     ],
     market_close_report: [
@@ -35,6 +36,7 @@ config :broker, Broker.Report.Scheduler,
       schedule: "59 15 * * 1-5",
       task: fn ->
         Broker.Portfolio.OrderProcessor.close()
+        Broker.Report.Scheduler.trading_close_alert()
       end
     ]
   ]
