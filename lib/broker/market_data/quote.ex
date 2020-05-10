@@ -37,6 +37,7 @@ defmodule Broker.MarketData.Quote do
     tickers = Enum.join(tickers, ",")
 
     quote_request(tickers)
+    |> Enum.filter(&tradeable?/1)
     |> Enum.into(%{}, fn result ->
       case fields_to_take do
         :all ->
@@ -53,14 +54,21 @@ defmodule Broker.MarketData.Quote do
       quote_request(ticker)
       |> hd()
 
-    case fields_to_take do
-      :all ->
-        result
+    if tradeable?(result) do
+      case fields_to_take do
+        :all ->
+          result
 
-      fields ->
-        Map.take(result, fields)
+        fields ->
+          Map.take(result, fields)
+      end
+    else
+      {:error, "only allowed info for us market"}
     end
   end
+
+  defp tradeable?(%{"market" => "us_market"}), do: true
+  defp tradeable?(_), do: false
 
   defp quote_request(symbols) do
     HTTPoison.get!("https://query1.finance.yahoo.com/v7/finance/quote?symbols=#{symbols}")
