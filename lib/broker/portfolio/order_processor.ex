@@ -17,7 +17,13 @@ defmodule Broker.Portfolio.OrderProcessor do
   end
 
   def init(nil) do
-    state = if trading_open?(), do: :open, else: :closed
+    state =
+      if trading_open?() do
+        open()
+        :open
+      else
+        :closed
+      end
 
     {:ok, state, nil}
   end
@@ -80,7 +86,6 @@ defmodule Broker.Portfolio.OrderProcessor do
       end)
       |> Database.store_trader()
 
-    IO.puts(trader)
     Broker.Bot.Command.respond(trader, msg)
 
     {:next_state, :closed, data}
@@ -110,11 +115,15 @@ defmodule Broker.Portfolio.OrderProcessor do
   end
 
   def handle_event(:cast, :open, _, data) do
+    IO.puts("opening...")
+    IO.puts("executing orders...")
     execute_orders()
+    IO.puts("all orders executed!")
     {:next_state, :open, data}
   end
 
   def handle_event(:cast, :close, _, data) do
+    IO.puts("closing...")
     {:next_state, :closed, data}
   end
 
@@ -126,7 +135,6 @@ defmodule Broker.Portfolio.OrderProcessor do
   end
 
   def execute_orders do
-    IO.puts("executing orders...")
     traders = Database.all_traders()
 
     price_map =

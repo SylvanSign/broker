@@ -166,11 +166,7 @@ defmodule Broker.Portfolio.Trader do
         ["Holdings Total", nil, nil, holdings_value],
         ["Cash", nil, nil, cash_value],
         divider(),
-        ["Net Worth", nil, nil, net_worth_value],
-        spacer(),
-        big_divider(),
-        spacer(),
-        divider()
+        ["Net Worth", nil, nil, net_worth_value]
       ]
 
       make_portfolio_table(holdings_rows ++ summary_rows ++ order_rows(orders), id)
@@ -199,21 +195,40 @@ defmodule Broker.Portfolio.Trader do
     end
 
     defp order_rows(%Orders{sell: sell, buy: buy}) do
-      sells = buy_or_sell_orders_rows(sell, "Sell")
+      if Enum.empty?(sell) and Enum.empty?(buy) do
+        []
+      else
+        sells = buy_or_sell_orders_rows(sell, "Sell")
 
-      buys = buy_or_sell_orders_rows(buy, "Buy")
+        buys = buy_or_sell_orders_rows(buy, "Buy")
 
-      [["Ticker", "Buy/Sell", "Shares", "Price"], divider()] ++ sells ++ [divider()] ++ buys
+        [
+          spacer(),
+          big_divider(),
+          spacer(),
+          divider(),
+          ["Ticker", "Open Orders", "Shares", "Price"],
+          divider()
+        ] ++ sells ++ [divider()] ++ buys
+      end
     end
 
     defp buy_or_sell_orders_rows(buy_or_sell_orders, kind) do
       Enum.map(buy_or_sell_orders, fn {ticker, {amount, value}} ->
+        order_label = "#{kind}"
+
+        value =
+          case kind do
+            "Sell" -> -value
+            "Buy" -> value
+          end
+
         case amount do
           :shares ->
-            [ticker, kind, value, nil]
+            [ticker, order_label, value, "-"]
 
           :value ->
-            [ticker, kind, nil, Currency.number_to_currency(value)]
+            [ticker, order_label, "-", Currency.number_to_currency(value)]
         end
       end)
     end
