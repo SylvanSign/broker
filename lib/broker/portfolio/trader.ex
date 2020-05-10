@@ -206,7 +206,7 @@ defmodule Broker.Portfolio.Trader do
           big_divider(),
           spacer(),
           divider(),
-          ["Ticker", "Open Orders", "Shares", "Price"],
+          ["Ticker", "Open Orders", "Shares", "Value"],
           divider()
         ] ++ sells ++ [divider()] ++ buys
       end
