@@ -33,6 +33,10 @@ defmodule Broker.Portfolio.Orders do
     Enum.reduce(tickers_to_cancel, orders, &orders_cleaner/2)
   end
 
+  def empty?(%Orders{sell: sell, buy: buy}) do
+    Enum.empty?(sell) and Enum.empty?(buy)
+  end
+
   defp orders_cleaner(
          ticker,
          %Orders{

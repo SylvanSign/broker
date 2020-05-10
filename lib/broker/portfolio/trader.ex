@@ -194,13 +194,12 @@ defmodule Broker.Portfolio.Trader do
       |> Table.render!()
     end
 
-    defp order_rows(%Orders{sell: sell, buy: buy}) do
-      if Enum.empty?(sell) and Enum.empty?(buy) do
+    defp order_rows(orders) do
+      if Orders.empty?(orders) do
         []
       else
-        sells = buy_or_sell_orders_rows(sell, "Sell")
-
-        buys = buy_or_sell_orders_rows(buy, "Buy")
+        sells = sell_orders_rows(orders)
+        buys = buy_orders_rows(orders)
 
         [
           spacer(),
@@ -213,24 +212,28 @@ defmodule Broker.Portfolio.Trader do
       end
     end
 
-    defp buy_or_sell_orders_rows(buy_or_sell_orders, kind) do
-      Enum.map(buy_or_sell_orders, fn {ticker, {amount, value}} ->
-        order_label = "#{kind}"
+    defp buy_orders_rows(%Orders{pending_buys: pending_buys, buy: buy}) do
+      Enum.map(:queue.to_list(pending_buys), fn ticker ->
+        {amount, value} = buy[ticker]
 
-        value =
-          case kind do
-            "Sell" -> -value
-            "Buy" -> value
-          end
-
-        case amount do
-          :shares ->
-            [ticker, order_label, value, "-"]
-
-          :value ->
-            [ticker, order_label, "-", Currency.number_to_currency(value)]
-        end
+        build_order_row("Buy", amount, ticker, value)
       end)
+    end
+
+    defp sell_orders_rows(%Orders{sell: sell}) do
+      Enum.map(sell, fn {ticker, {amount, value}} ->
+        build_order_row("Sell", amount, ticker, -value)
+      end)
+    end
+
+    defp build_order_row(buy_or_sell_label, amount, ticker, value) do
+      case amount do
+        :shares ->
+          [ticker, buy_or_sell_label, value, "-"]
+
+        :value ->
+          [ticker, buy_or_sell_label, "-", Currency.number_to_currency(value)]
+      end
     end
   end
 end
