@@ -29,7 +29,7 @@ defmodule Broker.MixProject do
       # number to currency pretty printing
       {:number, "~> 1.0"},
       # print nice tables
-      {:table_rex, "~> 2.0.0"},
+      {:table_rex, "~> 3.0.0"},
       # schedule jobs to run at a certain time
       {:quantum, "~> 3.0-rc"},
       # timezone data for quantum (above)

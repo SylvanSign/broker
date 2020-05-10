@@ -1,54 +1,81 @@
 defmodule Broker.Bot.Command do
   alias Nostrum.Api
-  alias Nostrum.Struct.User
   alias Number.Currency
   alias TableRex.Table
 
-  def reply("!c " <> tickers, msg) do
-    cancel_orders(tickers, msg)
+  def reply("!tutorial", msg) do
+    tutorial(msg)
   end
 
-  def reply("!cancel " <> tickers, msg) do
-    cancel_orders(tickers, msg)
+  def reply("!t", msg) do
+    tutorial(msg)
   end
 
-  def reply("!p " <> tickers, msg) do
-    price(tickers, msg)
+  def reply("!help", msg) do
+    help(msg)
+  end
+
+  def reply("!h", msg) do
+    help(msg)
   end
 
   def reply("!price " <> tickers, msg) do
     price(tickers, msg)
   end
 
-  def reply("!b " <> order, msg) do
-    buy(order, msg)
+  def reply("!p " <> tickers, msg) do
+    price(tickers, msg)
+  end
+
+  def reply("! " <> tickers, msg) do
+    price(tickers, msg)
   end
 
   def reply("!buy " <> order, msg) do
     buy(order, msg)
   end
 
-  def reply("!s " <> order, msg) do
-    sell(order, msg)
+  def reply("!b " <> order, msg) do
+    buy(order, msg)
   end
 
   def reply("!sell " <> order, msg) do
     sell(order, msg)
   end
 
-  def reply("!", msg) do
-    me(msg)
+  def reply("!s " <> order, msg) do
+    sell(order, msg)
+  end
+
+  def reply("!cancel " <> tickers, msg) do
+    cancel_orders(tickers, msg)
+  end
+
+  def reply("!c " <> tickers, msg) do
+    cancel_orders(tickers, msg)
   end
 
   def reply("!me", msg) do
     me(msg)
   end
 
+  def reply("!", msg) do
+    me(msg)
+  end
+
+  def reply("!report", msg) do
+    report(msg)
+  end
+
   def reply("!r", msg) do
     report(msg)
   end
 
-  def reply("!report", msg) do
+  def reply("!leaderboard", msg) do
+    report(msg)
+  end
+
+  def reply("!l", msg) do
     report(msg)
   end
 
@@ -56,27 +83,10 @@ defmodule Broker.Bot.Command do
     all(msg)
   end
 
-  def reply("!h", msg) do
-    missing_feature(msg)
-  end
-
-  def reply("!help", msg) do
-    missing_feature(msg)
-  end
-
-  # for debugging only, this can be removed eventually
-  def reply("!msg", msg) do
-    respond("#{inspect(msg, pretty: true)}", msg)
-  end
-
-  # this is a special price shortcut, but I want it to be the last priority in
-  # case we get ambiguous conflicts like `!all`, which could mean either
-  # - "price ALL" (Allstate)
-  # or
-  # - "show me all portfolios"
-  def reply("!" <> tickers, msg) do
-    price(tickers, msg)
-  end
+  # # for debugging only, this can be removed eventually
+  # def reply("!msg", msg) do
+  #   respond("#{inspect(msg, pretty: true)}", msg)
+  # end
 
   def reply(_contents, _msg) do
     :ignore
@@ -137,14 +147,131 @@ defmodule Broker.Bot.Command do
     end)
   end
 
-  defp missing_feature(%{channel_id: channel_id, author: author}) do
-    # TODO, create actual help display
+  defp tutorial(%{channel_id: channel_id}) do
+    Api.create_message(
+      channel_id,
+      """
+      Hi, I'm Broker! I'm an open-source chat bot that lets you simulate buying and selling securities in the US markets.
+
+      To get started, take a look at your current portfolio
+      ```
+      !me
+      ```
+      then take a look at the leaderboard
+      ```
+      !leaderboard
+      ```
+      check prices for given tickers
+      ```
+      !price gme big tsla
+      ```
+      buy shares
+      ```
+      !buy 10 f
+      ```
+      sell shares
+      ```
+      !sell f $30
+      ```
+      We'll refer to both "buys" and "sells" collectively as "trades".
+
+      As you can see, for trades, the value can be given in share count (eg. `10`) or dollars (eg. `$20`), and you can provide the ticker or the value first, as long as you provide both.
+
+      I will always execute each trade as much as I can within the limits of your current portfolio. For example, if you have $10 cash and ask to but 2 shares that are currently worth $7 each, I will buy you 1 share @ $7 and leave your $3 cash untouched. Similar logic exists for sells.
+
+      When you make trades during market hours (`9:30am-4:00pm ET, M-F`), I will execute them at based on the current share price. If you make trades outside of those hours, I will queue them up as "trade orders", which will be executed as soon as the markets open up again.
+
+      You can always see a breakdown of your current portfolio, along with any pending trade orders
+      ```
+      !me
+      ```
+      For open trade orders, I will queue up the buys in the order that you gave them to me. So if you ask to buy 10 TSLA, then you ask to buy 10 AAPL, I will first try to buy you 10 TSLA shares, then I'll try to buy you 10 AAPL shares. Sells will always be executed before buys, and the sell ordering does not matter.
+
+      To cancel all your orders related to a given ticker or tickers
+      ```
+      !cancel tsla aapl
+      ```
+      For a condensed reference of all the commands I understand, along with their shortcuts and more examples
+      ```
+      !help
+      ```
+      """
+    )
+  end
+
+  defp help(%{channel_id: channel_id}) do
+    headers = [
+      "Command",
+      "Shortcut(s)",
+      "Example"
+    ]
+
+    help_table =
+      Table.new(
+        [
+          [
+            "!help",
+            "!h",
+            nil
+          ],
+          [
+            "!tutorial",
+            "!t",
+            nil
+          ],
+          [
+            "!me",
+            "!",
+            nil
+          ],
+          [
+            "!leaderboard",
+            "!l",
+            nil
+          ],
+          [
+            "!report",
+            "!r",
+            nil
+          ],
+          [
+            "!price <ticker(s)>",
+            "!p, !",
+            "! B F"
+          ],
+          [
+            "!buy <amount> <ticker>",
+            "!b",
+            "!b 10 F"
+          ],
+          [
+            "!sell <amount> <ticker>",
+            "!s",
+            "!s F $300"
+          ],
+          [
+            "!cancel <ticker(s)>",
+            "!c",
+            "!c B F"
+          ],
+          [
+            "!all",
+            nil,
+            nil
+          ]
+        ],
+        headers,
+        "Commands I Understand"
+      )
+      |> Table.render!()
 
     Api.create_message(
       channel_id,
-      "Somebody needs to teach me how to reply to this!\nThat can be done by contributing to https://github.com/SylvanSign/broker\n\nAre you the chosen one, #{
-        User.mention(author)
-      }?"
+      """
+      ```
+      #{help_table}
+      ```
+      """
     )
   end
 
