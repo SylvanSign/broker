@@ -167,7 +167,9 @@ defmodule Broker.Portfolio.Trader do
         ["Cash", nil, nil, cash_value],
         divider(),
         ["Net Worth", nil, nil, net_worth_value],
-        divider(),
+        spacer(),
+        big_divider(),
+        spacer(),
         divider()
       ]
 
@@ -176,6 +178,14 @@ defmodule Broker.Portfolio.Trader do
 
     defp divider do
       Enum.map(1..4, fn _ -> "------------" end)
+    end
+
+    defp spacer do
+      Enum.map(1..4, fn _ -> nil end)
+    end
+
+    defp big_divider do
+      Enum.map(1..4, fn _ -> "============" end)
     end
 
     defp make_portfolio_table(rows, id) do
@@ -188,7 +198,7 @@ defmodule Broker.Portfolio.Trader do
       |> Table.render!()
     end
 
-    defp order_rows(%Orders{sell: sell, buy: buy, pending_buys: pending_buys} = orders) do
+    defp order_rows(%Orders{sell: sell, buy: buy}) do
       sells = buy_or_sell_orders_rows(sell, "Sell")
 
       buys = buy_or_sell_orders_rows(buy, "Buy")
