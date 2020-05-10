@@ -190,11 +190,8 @@ defmodule Broker.Bot.Command do
       |> String.split(" ")
       |> Enum.map(&transform_ticker/1)
 
-    unless tickers_to_cancel == "" do
-      id = author_id(msg)
-
-      Broker.Portfolio.OrderProcessor.cancel(id, tickers_to_cancel, msg)
-    end
+    id = author_id(msg)
+    Broker.Portfolio.OrderProcessor.cancel(id, tickers_to_cancel, msg)
   end
 
   defp format_price_change(change, change_percent) do
