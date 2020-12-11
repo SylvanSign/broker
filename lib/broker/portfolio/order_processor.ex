@@ -103,6 +103,8 @@ defmodule Broker.Portfolio.OrderProcessor do
           &Database.trade_by_shares/3
       end
 
+    IO.puts("Handling trade order - id: #{id} - ticker: #{ticker} - amount: #{amount}")
+
     case trade_function.(id, ticker, amount) do
       {:error, error} ->
         Broker.Bot.Command.respond("I can't do that because #{error}.", msg)
