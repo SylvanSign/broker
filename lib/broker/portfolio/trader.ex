@@ -14,7 +14,7 @@ defmodule Broker.Portfolio.Trader do
   def update_cash(%Trader{cash: cash} = trader, cash_adjust, share_adjust, share_price) do
     balance = cash + cash_adjust
 
-    if balance == 0 and balance < 0 do
+    if cash == 0 and balance < 0 do
       {:error, "you don't have any cash"}
     else
       if balance < 0 do
