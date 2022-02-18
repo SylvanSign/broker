@@ -303,7 +303,9 @@ defmodule Broker.Bot.Command do
                         "regularMarketOpen" => regular_market_open,
                         "regularMarketPreviousClose" => regular_market_previous_close,
                         "fiftyTwoWeekLow" => fifty_two_week_low,
-                        "fiftyTwoWeekHigh" => fifty_two_week_high
+                        "fiftyTwoWeekHigh" => fifty_two_week_high,
+                        "regularMarketVolume" => regular_market_volume,
+                        "averageDailyVolume3Month" => average_daily_volume_3_month
                       }} ->
         price = Currency.number_to_currency(price)
         price_change_summary = format_price_change(change, change_percent)
@@ -318,12 +320,14 @@ defmodule Broker.Bot.Command do
           "#{ticker} - #{name}",
           price,
           price_change_summary,
-          "prev close  #{prev_close}",
-          "open        #{open}",
-          "daily low   #{day_low}",
-          "daily high  #{day_high}",
-          "52 wk low   #{year_low}",
-          "52 wk high  #{year_high}"
+          "prev close #{prev_close}",
+          "open       #{open}",
+          "daily low  #{day_low}",
+          "daily high #{day_high}",
+          "52 wk low  #{year_low}",
+          "52 wk high #{year_high}",
+          "daily vol  #{regular_market_volume}",
+          "3M avg vol #{average_daily_volume_3_month}"
         ]
         |> Enum.join("\n")
       end)

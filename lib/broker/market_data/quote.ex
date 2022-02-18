@@ -10,6 +10,8 @@ defmodule Broker.MarketData.Quote do
     regularMarketPreviousClose
     fiftyTwoWeekLow
     fiftyTwoWeekHigh
+    regularMarketVolume
+    averageDailyVolume3Month
   )
 
   def price([]) do
