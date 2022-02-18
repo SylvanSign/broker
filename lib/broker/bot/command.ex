@@ -297,12 +297,35 @@ defmodule Broker.Bot.Command do
                         "regularMarketPrice" => price,
                         "longName" => name,
                         "regularMarketChange" => change,
-                        "regularMarketChangePercent" => change_percent
+                        "regularMarketChangePercent" => change_percent,
+                        "regularMarketDayHigh" => regular_market_day_high,
+                        "regularMarketDayLow" => regular_market_day_low,
+                        "regularMarketOpen" => regular_market_open,
+                        "regularMarketPreviousClose" => regular_market_previous_close,
+                        "fiftyTwoWeekLow" => fifty_two_week_low,
+                        "fiftyTwoWeekHigh" => fifty_two_week_high
                       }} ->
         price = Currency.number_to_currency(price)
         price_change_summary = format_price_change(change, change_percent)
+        prev_close = Currency.number_to_currency(regular_market_previous_close)
+        open = Currency.number_to_currency(regular_market_open)
+        day_low = Currency.number_to_currency(regular_market_day_low)
+        day_high = Currency.number_to_currency(regular_market_day_high)
+        year_low = Currency.number_to_currency(fifty_two_week_low)
+        year_high = Currency.number_to_currency(fifty_two_week_high)
 
-        "#{ticker} - #{name}\n#{price}\n#{price_change_summary}"
+        [
+          "#{ticker} - #{name}",
+          price,
+          price_change_summary,
+          "prev close  #{prev_close}",
+          "open        #{open}",
+          "daily low   #{day_low}",
+          "daily high  #{day_high}",
+          "52 wk low   #{year_low}",
+          "52 wk high  #{year_high}"
+        ]
+        |> Enum.join("\n")
       end)
       |> Enum.join("\n\n")
 
