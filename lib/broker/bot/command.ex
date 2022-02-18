@@ -88,6 +88,10 @@ defmodule Broker.Bot.Command do
   #   respond("#{inspect(msg, pretty: true)}", msg)
   # end
 
+  def reply("!" <> tickers, msg) do
+    price(tickers, msg)
+  end
+
   def reply(_contents, _msg) do
     :ignore
   end
